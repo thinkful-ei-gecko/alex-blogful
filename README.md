@@ -1,17 +1,26 @@
-# Express Boilerplate
+# Blogful
 
-This is a boilerplate used for starting new express projects.
+A very fake blog app.
 
 ## Set up
+Link(https://courses.thinkful.com/ei-node-postgres-v1/checkpoint/15)
 
-Complete the following steps to start a new project (NEW-PROJECT-NAME):
+### Seeding
+- To seed the database, run `psql -U dunder_mifflin -d blogful -f ./seeds/seed.blogful_articles.sql`.
 
-1. Clone this repository to your local machine `git clone BOILERPLATE-URL NEW-PROJECTS-NAME`
-2. `cd` into the cloned repository.
-3. Make a fresh start of the git history for this project with `rm -rf .git && git init`
-4. Install the node dependencies `npm install`
-5. Move the example Environment file to `.env` that will be ignored by git and read by the express server `mv example.env .env`
-6. Edit the contents of the `package.json` to use NEW-PROJECT-NAME instead of `"name": "express-boilerplate",`
+### Model of Flow of Control
+
+(from reading) The flow of control will go as follows:
+
+- We start the server with npm start aka node ./src/server.js
+- The server.js file requires the app instance from the app.js file
+- The app.js file creates the express instance, app and exports it
+- The server.js file creates the Knex instance
+- The server.js file attaches the Knex instance to the app as a property called 'db'
+- The server.js tells the app to start listening on a port number
+- Any request handling middleware can now read the 'db' property on the app to get the Knex instance
+
+The db property is set BEFORE any request handler callback functions(middleware) are called!!
 
 ## Scripts
 
