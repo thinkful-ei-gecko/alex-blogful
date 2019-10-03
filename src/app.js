@@ -15,13 +15,35 @@ app.use(helmet());
 app.use(cors());
 
 app.get('/articles', (req, res, next) => {
-  const knexInstance = req.app.get('db'); 
+  const knexInstance = req.app.get('db');
   ArticlesService.getAllArticles(knexInstance)
     .then(articles => {
-      res.json(articles);
+      res.json(
+        articles.map(article => ({
+          id: article.id,
+          title: article.title,
+          style: article.style,
+          content: article.content,
+          date_published: new Date(article.date_published)
+        }))
+      );
     })
     .catch(next);
-//This .catch(next) ensures error handler middleware handles errors!
+  //This .catch(next) ensures error handler middleware handles errors!
+});
+
+app.get('/articles/:article_id', (req, res, next) => {
+  const knexInstance = req.app.get('db');
+  ArticlesService.getById(knexInstance, req.params.article_id)
+    .then(article => {
+      if (!article) {
+        return res.status(404).json({
+          error: {message: 'Article does not exist'}
+        });
+      }
+      res.json(article);
+    })
+    .catch(next);
 });
 
 // app.get('/', (req, res) => {

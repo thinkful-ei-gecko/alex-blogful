@@ -22,6 +22,15 @@ Link(https://courses.thinkful.com/ei-node-postgres-v1/checkpoint/15)
 
 The db property is set BEFORE any request handler callback functions(middleware) are called!!
 
+### Testing Strategy
+
+- We'll need to use a database specifically for testing, to avoid breaking our development database every time we run tests.
+- We'll need to clear the database before all of the tests to be sure we are starting with clean tables.
+- We'll insert some rows into the blogful_articles table before the test.
+- We'll use Supertest to make requests to our Express instance's GET /articles handler.
+- We'll assert that the response matches the data we inserted into the database table.
+- We'll clear up the tables after each test.
+
 ## Scripts
 
 Start the application `npm start`
