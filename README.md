@@ -42,3 +42,11 @@ Run the tests `npm test`
 ## Deploying
 
 When your new project is ready for deployment, add a new Heroku application with `heroku create`. This will make a new git remote called "heroku" and you can then `npm run deploy` which will push to this remote's master branch.
+
+## Postmortem
+
+The 'serializeArticle' function MUST map over each part of the function to replace only a few key values - is there a better way to do this? Maybe a spread operator? Can it map the variables in question and then spread it into the array?
+
+I spent a minute trying to get the 'GET /' test to work with a different function that mapped testArticles into a new constant with expectedArticle tacked onto the end of it - maybe it would be more prudent to either do this in the fixtures or do it like the suggested solution and just pick the first inserted article (especially since only a specific part of the array needs to be tested). Either way, it works.
+
+I am anticipating that we will pull our functions such as 'serializeArticle' into a different structure, maybe a functions.js, just to dry up the router more.
