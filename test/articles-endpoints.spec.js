@@ -1,9 +1,9 @@
 const { expect } = require('chai');
 const knex = require('knex');
 const app = require('../src/app');
-const { makeArticlesArray } = require('./articles.fixtures');
+const { makeArticlesArray, addMaliciousArticle } = require('./articles.fixtures');
 
-describe.only('Articles Endpoints', function() {
+describe('Articles Endpoints', function() {
   let db;
 
   before('make knex instance', () => {
@@ -20,11 +20,11 @@ describe.only('Articles Endpoints', function() {
 
   afterEach('clean the table', () => db('blogful_articles').truncate());
 
-  describe('GET /articles', () => {
+  describe('GET /api/articles', () => {
     context('Given no articles', () => {
       it('responds with 200 and an empty list', () => {
         return supertest(app)
-          .get('/articles')
+          .get('/api/articles')
           .expect(200, []);
       });
     });
@@ -36,20 +36,56 @@ describe.only('Articles Endpoints', function() {
         return db.into('blogful_articles').insert(testArticles);
       });
 
-      it('GET /articles responds with 200 and all the articles.', () => {
+      it('GET /api/articles responds with 200 and all the articles.', () => {
         return supertest(app)
-          .get('/articles')
+          .get('/api/articles')
           .expect(200, testArticles);
+      });
+
+      context('Given an xss attack article', () => {
+        let { maliciousArticle, expectedArticle } = addMaliciousArticle();
+
+        beforeEach('inject malicious article', () => {
+          return db.into('blogful_articles').insert([ maliciousArticle ]);
+        });
+
+        it('removes xss attack content', () => {
+          let expectedArticles = testArticles;
+          expectedArticles.splice(4, 1, expectedArticle);
+          return supertest(app)
+            .get('/api/articles')
+            .expect( res => {              
+              expect(res.status).to.eql(200);
+              expect(res.body).to.eql(expectedArticles);
+            });
+        });
       });
     });
   });
 
-  describe('GET /articles/:article_id', () => {
+  describe('GET /api/articles/:article_id', () => {
+    context('Given an xss attack article', () => {
+      const { maliciousArticle, expectedArticle } = addMaliciousArticle();
+
+      beforeEach('insert malicious article', () => {
+        return db.into('blogful_articles').insert([maliciousArticle]);
+      });
+
+      it('removes xss attack content', () => {
+        return supertest(app)
+          .get(`/api/articles/${maliciousArticle.id}`)
+          .expect(200)
+          .expect(res => {
+            expect(res.body.title).to.eql(expectedArticle.title);
+            expect(res.body.content).to.eql(expectedArticle.content);
+          });
+      });
+    });
     context('Given no articles', () => {
       it('responds with a 404', () => {
         const articleId = 123456;
         return supertest(app)
-          .get(`/articles/${articleId}`)
+          .get(`/api/articles/${articleId}`)
           .expect(404, { error: { message: 'Article does not exist' } });
       });
     });
@@ -65,13 +101,31 @@ describe.only('Articles Endpoints', function() {
         const expectedArticle = testArticles[articleId - 1];
 
         return supertest(app)
-          .get(`/articles/${articleId}`)
+          .get(`/api/articles/${articleId}`)
           .expect(200, expectedArticle);
       });
     });
   });
 
-  describe('POST /articles', () => {
+  describe('POST /api/articles', () => {
+    context('Given an xss attack article', () => {
+      const { maliciousArticle, expectedArticle } = addMaliciousArticle();
+
+      it('removes xss attack content', () => {
+        return supertest(app)
+          .post('/api/articles/')
+          .send(maliciousArticle)
+          .expect(201)
+          .expect(res => {
+            expect(res.body.title).to.eql(expectedArticle.title);
+            expect(res.body.style).to.eql(expectedArticle.style);
+            expect(res.body.content).to.eql(expectedArticle.content);
+            expect(res.body).to.have.property('id');
+            expect(res.headers.location).to.eql(`/articles/${res.body.id}`);
+          });
+      });
+    });
+
     it('creates an article, responding with 201 and the new article', function() {
       this.retries(3);
       const newArticle = {
@@ -80,7 +134,7 @@ describe.only('Articles Endpoints', function() {
         content: 'Test new article content...'
       };
       return supertest(app)
-        .post('/articles')
+        .post('/api/articles')
         .send(newArticle)
         .expect(201)
         .expect(res => {
@@ -96,7 +150,7 @@ describe.only('Articles Endpoints', function() {
         })
         .then(postRes =>
           supertest(app)
-            .get(`/articles/${postRes.body.id}`)
+            .get(`/api/articles/${postRes.body.id}`)
             .expect(postRes.body)
         );
     });
@@ -110,14 +164,14 @@ describe.only('Articles Endpoints', function() {
         content: 'Test new article content...'
       };
 
-      it(`responds with 400 and an error message when the ${field} is missing`, ()=> {
+      it(`responds with 400 and an error message when the ${field} is missing`, () => {
         delete newArticle[field];
 
         return supertest(app)
-          .post('/articles')
+          .post('/api/articles')
           .send(newArticle)
           .expect(400, {
-            error: { message: `Missing ${field} in request body`}
+            error: { message: `Missing ${field} in request body` }
           });
       });
     });

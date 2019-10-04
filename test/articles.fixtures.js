@@ -31,6 +31,32 @@ function makeArticlesArray() {
   ];
 }
 
+function addMaliciousArticle() {
+  const maliciousArticle = {
+    id: 911,
+    date_published: '2019-11-03T21:57:29.001Z',
+    title: 'Naughty naughty very naughty <script>alert("xss");</script>',
+    style: 'How-to',
+    content:
+      'Bad image <img src="https://url.to.file.which/does-not.exist" onerror="alert(document.cookie);">. But not <strong>all</strong> bad.'
+  };
+  const expectedArticle = {
+    id: maliciousArticle.id,
+    date_published: maliciousArticle.date_published,
+    title:
+      'Naughty naughty very naughty &lt;script&gt;alert("xss");&lt;/script&gt;',
+    style: maliciousArticle.style,
+    content:
+      'Bad image <img src="https://url.to.file.which/does-not.exist">. But not <strong>all</strong> bad.'
+  };
+
+  return {
+    maliciousArticle,
+    expectedArticle
+  };
+}
+
 module.exports = {
   makeArticlesArray,
+  addMaliciousArticle
 };
