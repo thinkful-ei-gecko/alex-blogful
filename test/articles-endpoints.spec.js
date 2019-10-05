@@ -1,7 +1,11 @@
 const { expect } = require('chai');
 const knex = require('knex');
 const app = require('../src/app');
-const { makeArticlesArray, addMaliciousArticle } = require('./articles.fixtures');
+const { makeArticlesArray, addMaliciousArticle, dateParse } = require('./articles.fixtures');
+
+let testDate = makeArticlesArray();
+
+// dateParse fixes the windows date issue.
 
 describe('Articles Endpoints', function() {
   let db;
@@ -37,9 +41,13 @@ describe('Articles Endpoints', function() {
       });
 
       it('GET /api/articles responds with 200 and all the articles.', () => {
+
         return supertest(app)
           .get('/api/articles')
-          .expect(200, testArticles);
+          .expect(200)
+          .then(res => {
+            expect(res.body.map(dateParse)).to.eql(testArticles);
+          });
       });
 
       context('Given an xss attack article', () => {
@@ -56,7 +64,7 @@ describe('Articles Endpoints', function() {
             .get('/api/articles')
             .expect( res => {              
               expect(res.status).to.eql(200);
-              expect(res.body).to.eql(expectedArticles);
+              expect(res.body.map(dateParse)).to.eql(expectedArticles);
             });
         });
       });
@@ -102,7 +110,10 @@ describe('Articles Endpoints', function() {
 
         return supertest(app)
           .get(`/api/articles/${articleId}`)
-          .expect(200, expectedArticle);
+          .expect(200)
+          .then(res => {
+            expect(dateParse(res.body)).to.eql(expectedArticle);
+          });
       });
     });
   });
@@ -126,7 +137,7 @@ describe('Articles Endpoints', function() {
       });
     });
 
-    it('creates an article, responding with 201 and the new article', function() {
+    it.only('creates an article, responding with 201 and the new article', function() {
       this.retries(3);
       const newArticle = {
         title: 'Test new article',
@@ -144,7 +155,7 @@ describe('Articles Endpoints', function() {
           expect(res.body).to.have.property('id');
           expect(res.headers.location).to.eql(`/articles/${res.body.id}`);
 
-          const expected = new Date().toLocaleString();
+          const expected = new Date().toLocaleString('en', { timeZone: 'UTC' });
           const actual = new Date(res.body.date_published).toLocaleString();
           expect(actual).to.eql(expected);
         })

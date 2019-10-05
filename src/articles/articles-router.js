@@ -6,11 +6,7 @@ const articlesRouter = express.Router();
 const jsonParser = express.json();
 
 const serializeArticle = article => ({
-  id: article.id,
-  style: article.style,
-  title: xss(article.title),
-  content: xss(article.content),
-  date_published: article.date_published
+  ...article, title: xss(article.title), content:xss(article.content)
 });
 
 articlesRouter

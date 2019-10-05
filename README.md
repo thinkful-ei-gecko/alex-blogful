@@ -45,7 +45,9 @@ When your new project is ready for deployment, add a new Heroku application with
 
 ## Postmortem
 
-The 'serializeArticle' function MUST map over each part of the function to replace only a few key values - is there a better way to do this? Maybe a spread operator? Can it map the variables in question and then spread it into the array?
+Something my solution had in common with the course's was fixture containing the test data for maliciousArticle.
+
+The 'serializeArticle' function MUST map over each part of the function to replace only a few key values - is there a better way to do this? Maybe a spread operator? Can it map the variables in question and then spread it into the array? Would it make sense to put this in fixtures?
 
 I spent a minute trying to get the 'GET /' test to work with a different function that mapped testArticles into a new constant with expectedArticle tacked onto the end of it - maybe it would be more prudent to either do this in the fixtures or do it like the suggested solution and just pick the first inserted article (especially since only a specific part of the array needs to be tested). Either way, it works.
 
