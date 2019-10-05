@@ -137,7 +137,7 @@ describe('Articles Endpoints', function() {
       });
     });
 
-    it.only('creates an article, responding with 201 and the new article', function() {
+    it('creates an article, responding with 201 and the new article', function() {
       this.retries(3);
       const newArticle = {
         title: 'Test new article',
