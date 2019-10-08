@@ -43,6 +43,12 @@ Run the tests `npm test`
 
 When your new project is ready for deployment, add a new Heroku application with `heroku create`. This will make a new git remote called "heroku" and you can then `npm run deploy` which will push to this remote's master branch.
 
+## Questions
+
+- Is this message indicating there is a setting I need to change in Morgan somehow?
+
+  `morgan deprecated default format: use combined format src\app.js:16:9`
+
 ## Postmortem
 
 Something my solution had in common with the course's was fixture containing the test data for maliciousArticle.

@@ -1,9 +1,13 @@
 const { expect } = require('chai');
 const knex = require('knex');
 const app = require('../src/app');
-const { makeArticlesArray, addMaliciousArticle, dateParse } = require('./articles.fixtures');
 
-let testDate = makeArticlesArray();
+const {
+    makeArticlesArray,
+    addMaliciousArticle,
+    dateParse
+  } = require('./articles.fixtures'),
+  { makeUsersArray } = require('./users.fixtures');
 
 // dateParse fixes the windows date issue.
 
@@ -20,10 +24,16 @@ describe('Articles Endpoints', function() {
 
   after('disconnect from db', () => db.destroy());
 
-  before('clean the table', () => db('blogful_articles').truncate());
-
-  afterEach('clean the table', () => db('blogful_articles').truncate());
-
+  before('clean the table', () =>
+    db.raw(
+      'TRUNCATE blogful_articles, blogful_users, blogful_comments RESTART IDENTITY CASCADE'
+    )
+  );
+  afterEach('cleanup', () =>
+    db.raw(
+      'TRUNCATE blogful_articles, blogful_users, blogful_comments RESTART IDENTITY CASCADE'
+    )
+  );
   describe('GET /api/articles', () => {
     context('Given no articles', () => {
       it('responds with 200 and an empty list', () => {
@@ -34,14 +44,26 @@ describe('Articles Endpoints', function() {
     });
 
     context('Given there are articles in the database', () => {
-      const testArticles = makeArticlesArray();
+      //Load test data
+      const testUsers = makeUsersArray(),
+        testArticles = makeArticlesArray();
 
       beforeEach('insert articles', () => {
-        return db.into('blogful_articles').insert(testArticles);
+        return db
+          .into('blogful_users')
+          .insert(testUsers)
+          .then(() => {
+            return db.into('blogful_articles').insert(testArticles);
+          });
+      });
+
+      afterEach('remove inserted articles', () => {
+        db.raw(
+          'TRUNCATE blogful_articles, blogful_users, blogful_comments RESTART IDENTITY CASCADE'
+        );
       });
 
       it('GET /api/articles responds with 200 and all the articles.', () => {
-
         return supertest(app)
           .get('/api/articles')
           .expect(200)
@@ -51,10 +73,10 @@ describe('Articles Endpoints', function() {
       });
 
       context('Given an xss attack article', () => {
-        let { maliciousArticle, expectedArticle } = addMaliciousArticle();
+        const { maliciousArticle, expectedArticle } = addMaliciousArticle();
 
         beforeEach('inject malicious article', () => {
-          return db.into('blogful_articles').insert([ maliciousArticle ]);
+          return db.into('blogful_articles').insert([maliciousArticle]);
         });
 
         it('removes xss attack content', () => {
@@ -62,7 +84,7 @@ describe('Articles Endpoints', function() {
           expectedArticles.splice(4, 1, expectedArticle);
           return supertest(app)
             .get('/api/articles')
-            .expect( res => {              
+            .expect(res => {
               expect(res.status).to.eql(200);
               expect(res.body.map(dateParse)).to.eql(expectedArticles);
             });
@@ -72,23 +94,6 @@ describe('Articles Endpoints', function() {
   });
 
   describe('GET /api/articles/:article_id', () => {
-    context('Given an xss attack article', () => {
-      const { maliciousArticle, expectedArticle } = addMaliciousArticle();
-
-      beforeEach('insert malicious article', () => {
-        return db.into('blogful_articles').insert([maliciousArticle]);
-      });
-
-      it('removes xss attack content', () => {
-        return supertest(app)
-          .get(`/api/articles/${maliciousArticle.id}`)
-          .expect(200)
-          .expect(res => {
-            expect(res.body.title).to.eql(expectedArticle.title);
-            expect(res.body.content).to.eql(expectedArticle.content);
-          });
-      });
-    });
     context('Given no articles', () => {
       it('responds with a 404', () => {
         const articleId = 123456;
@@ -98,15 +103,21 @@ describe('Articles Endpoints', function() {
       });
     });
     context('Given there are articles in the database', () => {
-      const testArticles = makeArticlesArray();
+      const testUsers = makeUsersArray(),
+        testArticles = makeArticlesArray();
 
       beforeEach('insert articles', () => {
-        return db.into('blogful_articles').insert(testArticles);
+        return db
+          .into('blogful_users')
+          .insert(testUsers)
+          .then(() => {
+            return db.into('blogful_articles').insert(testArticles);
+          });
       });
 
       it('responds with 200 and the specified article', () => {
-        const articleId = 2;
-        const expectedArticle = testArticles[articleId - 1];
+        const articleId = 2,
+          expectedArticle = testArticles[articleId - 1];
 
         return supertest(app)
           .get(`/api/articles/${articleId}`)
@@ -115,10 +126,31 @@ describe('Articles Endpoints', function() {
             expect(dateParse(res.body)).to.eql(expectedArticle);
           });
       });
+      context('Given an xss attack article', () => {
+        const { maliciousArticle, expectedArticle } = addMaliciousArticle();
+
+        beforeEach('inject malicious article', () => {
+          return db.into('blogful_articles').insert([maliciousArticle]);
+        });
+
+        it('removes xss attack content', () => {
+          return supertest(app)
+            .get(`/api/articles/${maliciousArticle.id}`)
+            .expect(200)
+            .expect(res => {
+              expect(res.body.title).to.eql(expectedArticle.title);
+              expect(res.body.content).to.eql(expectedArticle.content);
+            });
+        });
+      });
     });
   });
 
   describe('POST /api/articles', () => {
+    const testUsers = makeUsersArray();
+    beforeEach('insert malicious article', () => {
+      return db.into('blogful_users').insert(testUsers);
+    });
     context('Given an xss attack article', () => {
       const { maliciousArticle, expectedArticle } = addMaliciousArticle();
 
